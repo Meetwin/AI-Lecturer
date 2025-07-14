@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Lecturer Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: rgb(21, 151, 232);
+            --secondary-brown: rgb(145, 129, 113);
+            --off-white: #fafafa;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-light: rgba(21, 151, 232, 0.1);
+            --shadow-medium: rgba(21, 151, 232, 0.2);
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--off-white) 0%, #f0f0f0 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated background particles */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Water flowing page transition overlay */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+            pointer-events: none;
+        }
+
+        .page-transition.active {
+            transform: translateX(0%);
+        }
+
+        .page-transition::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255,255,255,0.1) 20%, 
+                rgba(255,255,255,0.3) 50%, 
+                rgba(255,255,255,0.1) 80%, 
+                transparent 100%);
+            animation: wave 2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: translateX(0) scaleY(1); }
+            50% { transform: translateX(-20px) scaleY(1.1); }
+        }
+
+        /* Main container */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .app-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Lecturer selector */
+        .lecturer-selector {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .lecturer-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .lecturer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 8px;
+        }
+
+        .lecturer-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+
+        .lecturer-option:hover {
+            background: var(--glass-bg);
+        }
+
+        .lecturer-option.active {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            color: white;
+            border-color: transparent;
+        }
+
+        .lecturer-emoji {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .lecturer-name {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        /* Navigation */
+        .nav-menu {
+            padding: 16px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            margin-bottom: 8px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item:hover {
+            background: var(--glass-bg);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            color: white;
+            box-shadow: 0 8px 32px var(--shadow-light);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item:hover .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Content sections */
+        .content-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-section.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        /* Chat interface */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+        }
+
+        .chat-header {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 20px 24px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .chat-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .current-lecturer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--glass-bg);
+            border-radius: 12px;
+        }
+
+        .current-lecturer-emoji {
+            font-size: 32px;
+        }
+
+        .current-lecturer-info h4 {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .current-lecturer-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Messages area */
+        .messages-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .messages-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.1"/><circle cx="75" cy="75" r="0.3" fill="%23ffffff" opacity="0.1"/><circle cx="50" cy="10" r="0.4" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            border-radius: 24px;
+        }
+
+        /* Message bubbles */
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            animation: messageSlide 0.4s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 16px 20px;
+            border-radius: 24px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            color: white;
+            border-radius: 24px 24px 8px 24px;
+        }
+
+        .message.ai .message-bubble {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text-primary);
+            border-radius: 24px 24px 24px 8px;
+        }
+
+        .lecturer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+        }
+
+        /* Input area */
+        .input-container {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message-input {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 16px 20px;
+            font-size: 16px;
+            border-radius: 20px;
+            outline: none;
+            color: var(--text-primary);
+        }
+
+        .message-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px var(--shadow-medium);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px var(--shadow-light);
+        }
+
+        /* Upload area */
+        .upload-zone {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px);
+            border: 2px dashed var(--primary-blue);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            background: rgba(21, 151, 232, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .upload-zone.dragover {
+            background: rgba(21, 151, 232, 0.2);
+            border-color: var(--secondary-brown);
+        }
+
+        /* Storytelling modes */
+        .mode-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--shadow-light);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Group chat styles */
+        .group-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .group-item {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .group-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--shadow-light);
+        }
+
+        .group-name {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .group-topic {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .group-members {
+            color: var(--primary-blue);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Voice recorder */
+        .voice-recorder {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 24px;
+        }
+
+        .record-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(45deg, #ff4757, #ff6b7a);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .record-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 24px rgba(255, 71, 87, 0.3);
+        }
+
+        .record-btn.recording {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 71, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+
+        /* File preview */
+        .file-preview {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .file-preview.visible {
+            display: block;
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-brown));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* Loading states */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading-dot {
+            width: 4px;
+            height: 4px;
+            background: var(--primary-blue);
+            border-radius: 50%;
+            animation: loadingDot 1.4s infinite ease-in-out;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes loadingDot {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Success/Error states */
+        .status-message {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-message.visible {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+                min-height: 70vh;
+            }
+
+            .nav-menu {
+                display: flex;
+                overflow-x: auto;
+                padding: 16px;
+            }
+
+            .nav-item {
+                min-width: max-content;
+                margin-right: 8px;
+                margin-bottom: 0;
+            }
+
+            
+            
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --off-white: #1a1a1a;
+                --text-primary: #ffffff;
+                --text-secondary: #a1a1aa;
+                --glass-bg: rgba(255, 255, 255, 0.05);
+                --glass-border: rgba(255, 255, 255, 0.1);
+            }
+
+            body {
+                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background animation -->
+    <div class="bg-animation" id="bgAnimation"></div>
+
+    <!-- Water flowing page transition overlay -->
+    <div class="page-transition" id="pageTransition"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="app-title">AI Lecturer</div>
+                <div class="app-subtitle">Your Personal Learning Assistant</div>
+            </div>
+
+            <!-- Enhanced Lecturer Selector -->
+            <div class="lecturer-selector">
+                <div class="lecturer-title">Choose Your Lecturer</div>
+                <div class="lecturer-grid" id="lecturerGrid">
+                    <div class="lecturer-option active" data-lecturer="friendly">
+                        <div class="lecturer-emoji">😊</div>
+                        <div class="lecturer-name">Friendly</div>
+                    </div>
+                    <div class="lecturer-option" data-lecturer="academic">
+                        <div class="lecturer-emoji">🎓</div>
+                        <div class="lecturer-name">Academic</div>
+                    </div>
+                    <div class="lecturer-option" data-lecturer="creative">
+                        <div class="lecturer-emoji">🎨</div>
+                        <div class="lecturer-name">Creative</div>
+                    </div>
+                    <div class="lecturer-option" data-lecturer="practical">
+                        <div class="lecturer-emoji">🔧</div>
+                        <div class="lecturer-name">Practical</div>
+                    </div>
+                    <div class="lecturer-option" data-lecturer="socratic">
+                        <div class="lecturer-emoji">🤔</div>
+                        <div class="lecturer-name">Socratic</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <div class="nav-item active" data-section="chat" onclick="switchSection('chat', event)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <span class="nav-text">Chat</span>
+                </div>
+
+                <div class="nav-item" data-section="upload" onclick="switchSection('upload', event)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 18A6 6 0 1 1 7 6a6 6 0 0 1 0 12zM15 13l-3-3-3 3M12 5v9"/>
+                    </svg>
+                    <span class="nav-text">Upload Files</span>
+                </div>
+
+                <div class="nav-item" data-section="storytelling" onclick="switchSection('storytelling', event)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                    </svg>
+                    <span class="nav-text">Storytelling</span>
+                </div>
+
+                <div class="nav-item" data-section="groups" onclick="switchSection('groups', event)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM4 18v-1c0-1.38.56-2.63 1.46-3.54L9 11.93c.93-.93 2.23-1.46 3.54-1.46s2.61.53 3.54 1.46l3.54 1.53c.9.91 1.46 2.16 1.46 3.54v1H4z"/>
+                    </svg>
+                    <span class="nav-text">Groups</span>
+                </div>
+
+                <div class="nav-item" data-section="voice" onclick="switchSection('voice', event)">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                        <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span class="nav-text">Voice Notes</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-content">
+            <!-- Chat Section -->
+            <div class="content-section active" id="chat-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div>
+                            <div class="chat-title">AI Lecturer Chat</div>
+                            <div class="chat-subtitle">Ask questions, get explanations, and explore topics</div>
+                        </div>
+                        <div class="current-lecturer" id="currentLecturerDisplay">
+                            <div class="current-lecturer-emoji">😊</div>
+                            <div class="current-lecturer-info">
+                                <h4>Professor Friendly</h4>
+                                <p>Warm and encouraging teaching style</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="message ai">
+                        </div>
+                    </div>
+
+                    <div class="input-container">
+                        <input type="text" class="message-input" id="messageInput" 
+                               placeholder="Ask me anything about your studies..." 
+                               onkeypress="handleKeyPress(event)">
+                        <button class="btn-icon" onclick="sendMessage()">
+                            <svg viewBox="0 0 24 24" fill="currentColor" style="width: 16px; height: 16px;">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="content-section" id="upload-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="chat-title">Upload Learning Materials</div>
+                        <div class="chat-subtitle">Upload PDFs, documents, and images for AI analysis</div>
+                    </div>
+
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 48px; height: 48px; margin-bottom: 16px; color: var(--primary-blue);">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        </svg>
+                        <h3>Drop files here or click to upload</h3>
+                        <p>Supports PDF, DOC, TXT, and image files</p>
+                        <input type="file" id="fileInput" style="display: none;" accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg" onchange="handleFileUpload(event)">
+                    </div>
+
+                    <div class="file-preview" id="filePreview">
+                        <div class="file-info" id="fileInfo"></div>
+                    </div>
+
+                    <div class="status-message" id="uploadStatus"></div>
+                </div>
+            </div>
+
+            <!-- Enhanced Storytelling Section -->
+            <div class="content-section" id="storytelling-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="chat-title">AI Storytelling</div>
+                        <div class="chat-subtitle">Transform complex concepts into engaging stories</div>
+                    </div>
+
+                    <div class="mode-selector">
+                        <div class="mode-btn active" data-mode="story" onclick="setStoryMode('story', event)">Story</div>
+                        <div class="mode-btn" data-mode="metaphor" onclick="setStoryMode('metaphor', event)">Metaphor</div>
+                        <div class="mode-btn" data-mode="dialogue" onclick="setStoryMode('dialogue', event)">Dialogue</div>
+                        <div class="mode-btn" data-mode="analogy" onclick="setStoryMode('analogy', event)">Analogy</div>
+                    </div>
+
+                    <div class="input-container" style="margin-bottom: 24px;">
+                        <input type="text" class="message-input" id="conceptInput" 
+                               placeholder="Enter a concept to transform (e.g., photosynthesis, gravity)">
+                        <button class="btn" onclick="generateStory()">Generate</button>
+                    </div>
+
+                    <div class="messages-container" id="storyResult">
+                        <div class="message ai">
+                            <div class="message-bubble">
+                                Enter a concept above and choose a storytelling mode to get started!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Groups Section -->
+            <div class="content-section" id="groups-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="chat-title">Study Groups</div>
+                        <div class="chat-subtitle">Create and join AI-moderated study groups</div>
+                    </div>
+
+                    <div class="input-container" style="margin-bottom: 24px;">
+                        <input type="text" class="message-input" id="groupNameInput" placeholder="Group name">
+                        <input type="text" class="message-input" id="groupTopicInput" placeholder="Study topic">
+                        <button class="btn" onclick="createGroup()">Create Group</button>
+                    </div>
+
+                    <div class="group-list" id="groupList">
+                        <div class="group-item">
+                            <div class="group-name">Sample Study Group</div>
+                            <div class="group-topic">Topic: Quantum Physics</div>
+                            <div class="group-members">3 members</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Section -->
+            <div class="content-section" id="voice-section">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="chat-title">Voice Notes</div>
+                        <div class="chat-subtitle">Record voice questions and get AI responses</div>
+                    </div>
+
+                    <div class="voice-recorder">
+                        <button class="record-btn" id="recordBtn" onclick="toggleRecording()">🎤</button>
+                        <div>
+                            <div>Click to start recording</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Voice messages will be transcribed and processed</div>
+                        </div>
+                    </div>
+
+                    <div class="messages-container" id="voiceMessages">
+                        <div class="message ai">
+                            <div class="message-bubble">
+                                Record a voice note to get started with voice interactions!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSection = 'chat';
+        let currentStoryMode = 'story';
+        let currentLecturer = 'friendly';
+        let isRecording = false;
+        let mediaRecorder = null;
+
+        // Enhanced lecturer data
+        const lecturerData = {
+            friendly: { 
+                emoji: '😊', 
+                name: 'Professor Friendly', 
+                description: 'Warm and encouraging teaching style',
+                personality: 'Very warm and encouraging. Uses lots of positive reinforcement and makes learning feel safe and fun.'
+            },
+            academic: { 
+                emoji: '🎓', 
+                name: 'Dr. Academic', 
+                description: 'Formal and comprehensive explanations',
+                personality: 'Formal and thorough. Provides detailed, well-structured explanations with proper terminology.'
+            },
+            creative: { 
+                emoji: '🎨', 
+                name: 'Prof. Creative', 
+                description: 'Uses stories and creative analogies',
+                personality: 'Highly creative and imaginative. Uses metaphors, stories, and creative analogies to explain concepts.'
+            },
+            practical: { 
+                emoji: '🔧', 
+                name: 'Coach Practical', 
+                description: 'Focused on real-world applications',
+                personality: 'Very practical and application-focused. Emphasizes how things work in the real world.'
+            },
+            socratic: { 
+                emoji: '🤔', 
+                name: 'Sage Socratic', 
+                description: 'Guides through thoughtful questions',
+                personality: 'Uses the Socratic method. Guides learning through thoughtful questions rather than direct answers.'
+            }
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            createBackgroundAnimation();
+            setupDragAndDrop();
+            setupLecturerSelection();
+            checkServerConnection();
+        });
+
+        // Background animation
+        function createBackgroundAnimation() {
+            const container = document.getElementById('bgAnimation');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Enhanced lecturer selection
+        function setupLecturerSelection() {
+            document.querySelectorAll('.lecturer-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const lecturerType = this.dataset.lecturer;
+                    selectLecturer(lecturerType);
+                });
+            });
+        }
+
+        function selectLecturer(lecturerType) {
+            currentLecturer = lecturerType;
+            
+            // Update UI
+            document.querySelectorAll('.lecturer-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector(`[data-lecturer="${lecturerType}"]`).classList.add('active');
+            
+            // Update current lecturer display
+            const lecturer = lecturerData[lecturerType];
+            const display = document.getElementById('currentLecturerDisplay');
+            display.innerHTML = `
+                <div class="current-lecturer-emoji">${lecturer.emoji}</div>
+                <div class="current-lecturer-info">
+                    <h4>${lecturer.name}</h4>
+                    <p>${lecturer.description}</p>
+                </div>
+            `;
+            
+        }
+
+        // Section switching with water flowing transition
+        function switchSection(sectionName, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            // Don't transition if already on the same section
+            if (currentSection === sectionName) return;
+
+            const transition = document.getElementById('pageTransition');
+            
+            // Start water flowing transition
+            transition.classList.add('active');
+            
+            setTimeout(() => {
+                // Update navigation
+                document.querySelector('.nav-item.active').classList.remove('active');
+                if (event) {
+                    event.target.closest('.nav-item').classList.add('active');
+                } else {
+                    document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+                }
+
+                // Hide current section
+                document.querySelector('.content-section.active').classList.remove('active');
+                
+                // Show new section
+                document.getElementById(sectionName + '-section').classList.add('active');
+                
+                currentSection = sectionName;
+                
+                // End transition
+                setTimeout(() => {
+                    transition.classList.remove('active');
+                }, 100);
+            }, 400);
+        }
+
+        // Chat functionality
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            addMessage(message, true);
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('/api/chat/lecturer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message, 
+                        userId: 'user1', 
+                        lecturerType: currentLecturer 
+                    })
+                });
+
+                const data = await response.json();
+                hideTypingIndicator();
+
+                if (data.success) {
+                    addMessage(data.response, false, currentLecturer);
+                } else {
+                    addMessage('Sorry, I encountered an error: ' + data.error, false, currentLecturer);
+                }
+            } catch (error) {
+                hideTypingIndicator();
+                
+                // Enhanced fallback responses based on lecturer personality
+                const lecturer = lecturerData[currentLecturer];
+                const demoResponses = {
+                    friendly: `That's such a wonderful question! I absolutely love your curiosity about this topic. While I'm currently running in demo mode, I want you to know that ${lecturer.name} would typically provide warm, encouraging explanations to help you understand this better. Keep asking great questions like this!`,
+                    
+                    academic: `Your inquiry demonstrates intellectual rigor and scholarly curiosity. In a fully operational environment, ${lecturer.name} would provide a comprehensive, methodical analysis of this subject matter, complete with proper citations and detailed theoretical frameworks. The systematic approach to understanding this concept would involve multiple analytical perspectives.`,
+                    
+                    creative: `Oh, what a delightfully intriguing question! 🎨 Let me paint you a picture... ${lecturer.name} would normally weave an enchanting tale or craft a vivid metaphor to bring this concept to life. Imagine your question as a blank canvas, and together we would create a masterpiece of understanding filled with colorful analogies and imaginative stories!`,
+                    
+                    practical: `Great question! This is exactly the kind of real-world thinking I love to see. ${lecturer.name} would typically break this down into concrete, actionable steps and show you exactly how this applies in your daily life. We'd look at specific examples, case studies, and practical applications that you can actually use right away.`,
+                    
+                    socratic: `Hmm, that's quite thought-provoking... 🤔 Let me turn this back to you for a moment: What do you already know about this topic? What connections can you make to things you've learned before? ${lecturer.name} believes the best understanding comes through guided discovery. What questions does this raise for you?`
+                };
+                
+                setTimeout(() => {
+                    addMessage(demoResponses[currentLecturer] + '\n\n(Demo Mode - Connect your backend for full AI responses)', false, currentLecturer);
+                }, 1500);
+            }
+        }
+
+        function addMessage(text, isUser, lecturerType = currentLecturer) {
+            const container = document.getElementById('messagesContainer');
+            const message = document.createElement('div');
+            message.className = `message ${isUser ? 'user' : 'ai'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            if (!isUser && lecturerType) {
+                const lecturer = lecturerData[lecturerType];
+                bubble.innerHTML = `
+                    <div class="lecturer-badge">
+                        <span>${lecturer.emoji}</span>
+                        ${lecturer.name}
+                    </div>
+                    ${text}
+                `;
+            } else {
+                bubble.textContent = text;
+            }
+            
+            message.appendChild(bubble);
+            container.appendChild(message);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const container = document.getElementById('messagesContainer');
+            const indicator = document.createElement('div');
+            indicator.className = 'message ai';
+            indicator.id = 'typingIndicator';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            const lecturer = lecturerData[currentLecturer];
+            bubble.innerHTML = `
+                <div class="lecturer-badge">
+                    <span>${lecturer.emoji}</span>
+                    ${lecturer.name}
+                </div>
+                <div class="loading">
+                    AI is thinking
+                    <div class="loading-dots">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                    </div>
+                </div>
+            `;
+            
+            indicator.appendChild(bubble);
+            container.appendChild(indicator);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // File upload functionality
+        function setupDragAndDrop() {
+            const uploadZone = document.getElementById('uploadZone');
+            
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                    handleFileUpload({ target: { files } });
+                }
+            });
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showFilePreview(file);
+            showStatus('Uploading file...', 'loading');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', 'user1');
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('File uploaded successfully!', 'success');
+                } else {
+                    showStatus('Upload failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showStatus('Demo Mode: File upload simulation - connect backend for real uploads', 'success');
+            }
+        }
+
+        function showFilePreview(file) {
+            const preview = document.getElementById('filePreview');
+            const info = document.getElementById('fileInfo');
+            
+            const fileExtension = file.name.split('.').pop().toUpperCase();
+            
+            info.innerHTML = `
+                <div class="file-icon">${fileExtension}</div>
+                <div class="file-details">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+            `;
+            
+            preview.classList.add('visible');
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('uploadStatus');
+            status.textContent = message;
+            status.className = `status-message visible status-${type}`;
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    status.classList.remove('visible');
+                }, 3000);
+            }
+        }
+
+        // Storytelling functionality
+        function setStoryMode(mode, event) {
+            currentStoryMode = mode;
+            
+            document.querySelector('.mode-btn.active').classList.remove('active');
+            event.target.classList.add('active');
+        }
+
+        async function generateStory() {
+            const conceptInput = document.getElementById('conceptInput');
+            const concept = conceptInput.value.trim();
+            
+            if (!concept) {
+                showStoryStatus('Please enter a concept first', 'error');
+                return;
+            }
+
+            const resultContainer = document.getElementById('storyResult');
+            resultContainer.innerHTML = '';
+            
+            // Show loading
+            const loadingMessage = document.createElement('div');
+            loadingMessage.className = 'message ai';
+            loadingMessage.innerHTML = `
+                <div class="message-bubble">
+                    <div class="loading">
+                        Creating your ${currentStoryMode}
+                        <div class="loading-dots">
+                            <div class="loading-dot"></div>
+                            <div class="loading-dot"></div>
+                            <div class="loading-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultContainer.appendChild(loadingMessage);
+
+            try {
+                const response = await fetch('/api/storytelling/enhanced', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ concept, mode: currentStoryMode, userId: 'user1' })
+                });
+
+                const data = await response.json();
+                
+                resultContainer.innerHTML = '';
+                
+                if (data.success) {
+                    const storyMessage = document.createElement('div');
+                    storyMessage.className = 'message ai';
+                    storyMessage.innerHTML = `
+                        <div class="message-bubble">
+                            <strong>${currentStoryMode.charAt(0).toUpperCase() + currentStoryMode.slice(1)} for "${concept}":</strong><br><br>
+                            ${data.story}
+                        </div>
+                    `;
+                    resultContainer.appendChild(storyMessage);
+                } else {
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'message ai';
+                    errorMessage.innerHTML = `
+                        <div class="message-bubble">
+                            Sorry, I couldn't generate a ${currentStoryMode} right now. Error: ${data.error}
+                        </div>
+                    `;
+                    resultContainer.appendChild(errorMessage);
+                }
+            } catch (error) {
+                resultContainer.innerHTML = '';
+                
+                // Enhanced demo stories
+                setTimeout(() => {
+                    const demoStories = {
+                        story: `Once upon a time, in the fascinating world of ${concept}, there lived countless tiny elements that worked together in perfect harmony. This magical process began when the morning sun cast its golden rays across the landscape...\n\nIn this enchanting realm, every particle had a special role to play. The story of ${concept} is one of transformation, energy, and the beautiful dance of nature's forces working together to create something extraordinary.\n\n(This is a demo story - connect your backend for AI-generated content!)`,
+                        
+                        metaphor: `Think of ${concept} like a bustling city during rush hour. Just as thousands of commuters flow through the streets, following traffic rules and signals to reach their destinations, the elements of ${concept} follow natural laws and pathways to achieve their purpose.\n\nThe traffic lights are like the controlling factors, the roads are like the pathways, and the commuters are like the particles involved in ${concept}. Each has its role, timing, and destination.\n\n(Demo metaphor - connect backend for AI creativity!)`,
+                        
+                        dialogue: `"What exactly is ${concept}?" asked the curious student, leaning forward with bright, eager eyes.\n\n"Ah, excellent question!" replied the wise teacher, adjusting her glasses. "Let me tell you, ${concept} is like having a conversation between different forces of nature."\n\n"A conversation? How so?" the student wondered.\n\n"Well, imagine if energy and matter could talk to each other..."\n\n(Demo dialogue - backend connection needed for full conversations!)`,
+                        
+                        analogy: `Understanding ${concept} is like learning to cook your favorite dish. Just as you need the right ingredients, proper timing, and the correct temperature, ${concept} requires specific conditions, elements, and energy to work properly.\n\nThe recipe for ${concept} has been perfected by nature over millions of years, and each 'ingredient' must be added at just the right moment for the process to succeed.\n\n(Demo analogy - connect your backend for detailed analogies!)`
+                    };
+                    
+                    const demoMessage = document.createElement('div');
+                    demoMessage.className = 'message ai';
+                    demoMessage.innerHTML = `
+                        <div class="message-bubble">
+                            <strong>Demo ${currentStoryMode.charAt(0).toUpperCase() + currentStoryMode.slice(1)} for "${concept}":</strong><br><br>
+                            ${demoStories[currentStoryMode] || demoStories.story}
+                        </div>
+                    `;
+                    resultContainer.appendChild(demoMessage);
+                }, 2000);
+            }
+        }
+
+        function showStoryStatus(message, type) {
+            const resultContainer = document.getElementById('storyResult');
+            resultContainer.innerHTML = `
+                <div class="message ai">
+                    <div class="message-bubble" style="color: ${type === 'error' ? 'var(--error-color)' : 'var(--text-primary)'};">
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Group functionality
+        async function createGroup() {
+            const nameInput = document.getElementById('groupNameInput');
+            const topicInput = document.getElementById('groupTopicInput');
+            
+            const groupName = nameInput.value.trim();
+            const topic = topicInput.value.trim();
+            
+            if (!groupName || !topic) {
+                alert('Please enter both group name and topic');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/group/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName, topic, userId: 'user1' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    addGroupToList(data.group);
+                    nameInput.value = '';
+                    topicInput.value = '';
+                    alert('Group created successfully!');
+                } else {
+                    alert('Failed to create group: ' + data.error);
+                }
+            } catch (error) {
+                // Demo mode
+                addGroupToList({
+                    name: groupName,
+                    topic: topic,
+                    members: ['user1']
+                });
+                nameInput.value = '';
+                topicInput.value = '';
+                alert('Demo: Group created! (Connect backend for real functionality)');
+            }
+        }
+
+        function addGroupToList(group) {
+            const groupList = document.getElementById('groupList');
+            const groupItem = document.createElement('div');
+            groupItem.className = 'group-item';
+            groupItem.innerHTML = `
+                <div class="group-name">${group.name}</div>
+                <div class="group-topic">Topic: ${group.topic}</div>
+                <div class="group-members">${group.members.length} member(s)</div>
+            `;
+            groupList.appendChild(groupItem);
+        }
+
+        // Voice recording functionality
+        async function toggleRecording() {
+            const recordBtn = document.getElementById('recordBtn');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    mediaRecorder.ondataavailable = handleRecordingData;
+                    mediaRecorder.onstop = handleRecordingStop;
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordBtn.classList.add('recording');
+                    recordBtn.textContent = '⏹️';
+                    
+                    addVoiceMessage('🎤 Recording started...', false);
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    addVoiceMessage('❌ Error: Could not access microphone. Please check permissions.', false);
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.classList.remove('recording');
+                recordBtn.textContent = '🎤';
+                
+                // Stop all tracks
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function handleRecordingData(event) {
+            if (event.data.size > 0) {
+                console.log('Recording data available:', event.data);
+                // In a real implementation, you would send this to your backend
+            }
+        }
+
+        function handleRecordingStop() {
+            addVoiceMessage('⏹️ Recording stopped. Processing...', false);
+            
+            // Simulate processing
+            setTimeout(() => {
+                addVoiceMessage('✅ Voice note processed! In full mode, this would be transcribed using speech-to-text and sent to your selected AI lecturer for response.', false);
+            }, 2000);
+        }
+
+        function addVoiceMessage(text, isUser) {
+            const container = document.getElementById('voiceMessages');
+            const message = document.createElement('div');
+            message.className = `message ${isUser ? 'user' : 'ai'}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+            
+            message.appendChild(bubble);
+            container.appendChild(message);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Server connection check
+        async function checkServerConnection() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    console.log('✅ Server connected successfully', false);
+                } else {
+                    console.warn('⚠️ Server health check failed', false);
+                }
+            } catch (error) {
+                console.log('📱 Running in demo mode', false);
+            }
+        }
+
+        // Enhanced interactions with ripple effects
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('btn') || e.target.classList.contains('btn-icon')) {
+                createRipple(e);
+            }
+        });
+
+        function createRipple(event) {
+            const button = event.currentTarget;
+            const ripple = document.createElement('span');
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = event.clientX - rect.left - size / 2;
+            const y = event.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.classList.add('ripple');
+            
+            button.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        }
+
+        // Add ripple CSS
+        const rippleStyle = document.createElement('style');
+        rippleStyle.textContent = `
+            .ripple {
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.6);
+                transform: scale(0);
+                animation: ripple-animation 0.6s linear;
+                pointer-events: none;
+            }
+            
+            @keyframes ripple-animation {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(rippleStyle);
+
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            if ('performance' in window) {
+                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                console.log(`📊 Page load time: ${loadTime}ms`);
+            }
+        });
+    </script>
+</body>
+</html>
