@@ -755,7 +755,12 @@
                 margin-bottom: 0;
             }
 
-            
+            .nav-icon {
+                width: 24px;
+                height: 24px;
+                color: rgb(21, 151, 232); /* or use any color you like */
+            }
+
             
         }
 
@@ -841,7 +846,11 @@
 
                 <div class="nav-item" data-section="groups" onclick="switchSection('groups', event)">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM4 18v-1c0-1.38.56-2.63 1.46-3.54L9 11.93c.93-.93 2.23-1.46 3.54-1.46s2.61.53 3.54 1.46l3.54 1.53c.9.91 1.46 2.16 1.46 3.54v1H4z"/>
+                        <!-- Circle Path -->
+                        <path d="M7 18A6 6 0 1 1 7 6a6 6 0 0 1 0 12z" />
+                        
+                        <!-- Arrow Path -->
+                        <path d="M15 13l-3-3-3 3M12 5v9" />
                     </svg>
                     <span class="nav-text">Groups</span>
                 </div>
